@@ -147,12 +147,6 @@ resource "azurerm_subnet_network_security_group_association" "packer-nsg-assoc" 
   network_security_group_id = azurerm_network_security_group.packer-nsg.id
 }
 
-# Associate NSG with Application Gateway subnet
-resource "azurerm_subnet_network_security_group_association" "app-gateway-nsg-assoc" {
-  subnet_id                 = azurerm_subnet.app-gateway-subnet.id
-  network_security_group_id = azurerm_network_security_group.packer-gateway.id
-}
-
 # Associate NSG with Bastion subnet
 resource "azurerm_subnet_network_security_group_association" "bastion-nsg-assoc" {
   subnet_id                 = azurerm_subnet.bastion-subnet.id
