@@ -62,4 +62,3 @@ else
   echo "NOTE: Successfully logged into Azure."
 fi
 
-

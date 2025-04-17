@@ -1,38 +1,30 @@
 # Define the virtual network
-resource "azurerm_virtual_network" "flask-app-vnet" {
-  name                = "flask-app-vnet"                              # Name of the virtual network
+resource "azurerm_virtual_network" "packer-vnet" {
+  name                = "packer-vnet"                              # Name of the virtual network
   address_space       = ["10.0.0.0/23"]                               # Address space for the VNet
   location            = azurerm_resource_group.flask-vmss.location    # Azure region
   resource_group_name = azurerm_resource_group.flask-vmss.name        # Resource group for the VNet
 }
 
 # Define a subnet within the virtual network
-resource "azurerm_subnet" "flask-app-subnet" {
-  name                 = "flask-app-subnet"                           # Name of the subnet
+resource "azurerm_subnet" "packer-subnet" {
+  name                 = "packer-subnet"                           # Name of the subnet
   resource_group_name  = azurerm_resource_group.flask-vmss.name       # Resource group for the subnet
-  virtual_network_name = azurerm_virtual_network.flask-app-vnet.name  # Parent virtual network name
+  virtual_network_name = azurerm_virtual_network.packer-vnet.name  # Parent virtual network name
   address_prefixes     = ["10.0.0.0/25"]                              # Address prefix for the subnet
-}
-
-# Define a subnet for the application gateway
-resource "azurerm_subnet" "app-gateway-subnet" {
-  name                 = "app-gateway-subnet"                         # Name of the subnet
-  resource_group_name  = azurerm_resource_group.flask-vmss.name       # Resource group for the subnet
-  virtual_network_name = azurerm_virtual_network.flask-app-vnet.name  # Parent virtual network name
-  address_prefixes     = ["10.0.0.128/25"]                            # Address prefix for the subnet
 }
 
 # Define the Azure Bastion subnet
 resource "azurerm_subnet" "bastion-subnet" {
   name                 = "AzureBastionSubnet"                         # Required name for Azure Bastion
   resource_group_name  = azurerm_resource_group.flask-vmss.name       # Resource group for the subnet
-  virtual_network_name = azurerm_virtual_network.flask-app-vnet.name  # Parent virtual network name
+  virtual_network_name = azurerm_virtual_network.packer-vnet.name  # Parent virtual network name
   address_prefixes     = ["10.0.1.0/25"]                              # Address prefix for the subnet
 }
 
 # Define a network security group for the Flask app
-resource "azurerm_network_security_group" "flask-app-nsg" {
-  name                = "flask-app-nsg"                               # Name of the NSG
+resource "azurerm_network_security_group" "packer-nsg" {
+  name                = "packer-nsg"                                  # Name of the NSG
   location            = azurerm_resource_group.flask-vmss.location    # Azure region
   resource_group_name = azurerm_resource_group.flask-vmss.name        # Resource group for the NSG
 
@@ -49,49 +41,29 @@ resource "azurerm_network_security_group" "flask-app-nsg" {
   }
 
   security_rule {
-    name                       = "Allow-8000"                         # Rule name: Allow port 8000
+    name                       = "Allow-RDP"                          # Rule name: Allow RDP
     priority                   = 1001                                 # Rule priority
     direction                  = "Inbound"                            # Traffic direction
     access                     = "Allow"                              # Allow or deny rule
     protocol                   = "Tcp"                                # Protocol type
     source_port_range          = "*"                                  # Source port range
-    destination_port_range     = "8000"                               # Destination port
+    destination_port_range     = "3389"                               # Destination port for RDP
     source_address_prefix      = "*"                                  # Source address range
     destination_address_prefix = "*"                                  # Destination address range
   }
-}
 
-# Define a network security group for the application gateway
-resource "azurerm_network_security_group" "flask-app-gateway" {
-  name                = "flask-app-gateway-nsg"                       # Name of the NSG
-  location            = azurerm_resource_group.flask-vmss.location    # Azure region
-  resource_group_name = azurerm_resource_group.flask-vmss.name        # Resource group for the NSG
-
-  security_rule {
-    name                       = "Allow-HTTP"                         # Rule name: Allow HTTP traffic
+    security_rule {
+    name                       = "Allow-HTTP"                         # Rule name: Allow HTTP
     priority                   = 1002                                 # Rule priority
     direction                  = "Inbound"                            # Traffic direction
     access                     = "Allow"                              # Allow or deny rule
     protocol                   = "Tcp"                                # Protocol type
     source_port_range          = "*"                                  # Source port range
-    destination_port_range     = "80"                                 # Destination port
-    source_address_prefix      = "*"                                  # Source address range
-    destination_address_prefix = "*"                                  # Destination address range
-  }
-
-  security_rule {
-    name                       = "Allow-AppGateway-Ports"             # Rule name: Allow App Gateway ports
-    priority                   = 1003                                 # Rule priority
-    direction                  = "Inbound"                            # Traffic direction
-    access                     = "Allow"                              # Allow or deny rule
-    protocol                   = "Tcp"                                # Protocol type
-    source_port_range          = "*"                                  # Source port range
-    destination_port_ranges    = ["65200-65535"]                      # Destination port range
+    destination_port_range     = "80"                                 # Destination port for RDP
     source_address_prefix      = "*"                                  # Source address range
     destination_address_prefix = "*"                                  # Destination address range
   }
 }
-
 # Define a network security group for the Azure Bastion
 resource "azurerm_network_security_group" "bastion-nsg" {
   name                = "bastion-nsg"                                 # Name of the NSG
@@ -170,15 +142,15 @@ resource "azurerm_bastion_host" "bastion-host" {
 }
 
 # Associate NSG with Flask app subnet
-resource "azurerm_subnet_network_security_group_association" "flask-app-nsg-assoc" {
-  subnet_id                 = azurerm_subnet.flask-app-subnet.id
-  network_security_group_id = azurerm_network_security_group.flask-app-nsg.id
+resource "azurerm_subnet_network_security_group_association" "packer-nsg-assoc" {
+  subnet_id                 = azurerm_subnet.packer-subnet.id
+  network_security_group_id = azurerm_network_security_group.packer-nsg.id
 }
 
 # Associate NSG with Application Gateway subnet
 resource "azurerm_subnet_network_security_group_association" "app-gateway-nsg-assoc" {
   subnet_id                 = azurerm_subnet.app-gateway-subnet.id
-  network_security_group_id = azurerm_network_security_group.flask-app-gateway.id
+  network_security_group_id = azurerm_network_security_group.packer-gateway.id
 }
 
 # Associate NSG with Bastion subnet
