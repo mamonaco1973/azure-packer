@@ -30,16 +30,3 @@ sudo systemctl start apache2 >/dev/null 2>&1
 # Assumes files are staged ahead of time (e.g., by Packer or cloud-init)
 sudo cp /tmp/html/* /var/www/html/
 
-# Ensure snapd (Snap package manager daemon) is started
-# Required for launching snap-managed services like amazon-ssm-agent
-sudo systemctl start snapd
-
-# Enable snapd to start on boot to persist snap capabilities after reboot
-sudo systemctl enable snapd
-
-# Enable the snap-installed AWS Systems Manager (SSM) agent at boot
-# Full service name required due to nested naming used by Snap packages
-sudo systemctl enable snap.amazon-ssm-agent.amazon-ssm-agent.service
-
-# Start the AWS SSM agent immediately so the instance can register with AWS Systems Manager
-sudo systemctl start snap.amazon-ssm-agent.amazon-ssm-agent.service
