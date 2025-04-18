@@ -7,7 +7,7 @@ resource "random_string" "key_vault_suffix" {
 # Create an Azure Key Vault
 resource "azurerm_key_vault" "packer_key_vault" {
   name                        = "packer-kv-${random_string.key_vault_suffix.result}"  
-  resource_group_name         = azurerm_resource_group.packer_rg.names
+  resource_group_name         = azurerm_resource_group.packer_rg.name
   location                    = azurerm_resource_group.packer_rg.location
   sku_name                    = "standard"
   tenant_id                   = data.azurerm_client_config.current.tenant_id
