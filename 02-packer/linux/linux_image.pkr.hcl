@@ -70,7 +70,7 @@ source "azure-arm"  "games_image" {
 
 build {
 
-  sources = ["source.azure-armg.games_image"]
+  sources = ["source.azure-arm.games_image"]
 
   # Create a temp directory for HTML files
   provisioner "shell" {
