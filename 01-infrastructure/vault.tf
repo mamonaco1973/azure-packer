@@ -21,3 +21,25 @@ resource "azurerm_role_assignment" "kv_role_assignment" {
   role_definition_name = "Key Vault Secrets Officer"
   principal_id         = data.azurerm_client_config.current.object_id
 }
+
+# --- User: Packer ---
+
+# Generate a secure random alphanumeric password
+resource "random_password" "generated" {
+  length  = 24         # Total password length: 24 characters
+  special = false      # Exclude special characters (alphanumeric only for compatibility)
+}
+
+
+# Create secret for "packer" credentials
+
+resource "azurerm_key_vault_secret" "packer_secret" {
+  name         = "packer-credentials"
+  value        = jsonencode({
+    username = "packer"
+    password = random_password.generated.result
+  })
+  key_vault_id = azurerm_key_vault.packer_key_vault.id
+  depends_on = [ azurerm_role_assignment.kv_role_assignment ]
+  content_type = "application/json"
+}
