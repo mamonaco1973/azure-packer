@@ -1,32 +1,32 @@
 # Define the virtual network
 resource "azurerm_virtual_network" "packer-vnet" {
-  name                = "packer-vnet"                              # Name of the virtual network
-  address_space       = ["10.0.0.0/23"]                               # Address space for the VNet
-  location            = azurerm_resource_group.flask-vmss.location    # Azure region
-  resource_group_name = azurerm_resource_group.flask-vmss.name        # Resource group for the VNet
+  name                = "packer-vnet"                                # Name of the virtual network
+  address_space       = ["10.0.0.0/23"]                              # Address space for the VNet
+  location            = azurerm_resource_group.packer_rg.location    # Azure region
+  resource_group_name = azurerm_resource_group.packer_rg.name        # Resource group for the VNet
 }
 
 # Define a subnet within the virtual network
 resource "azurerm_subnet" "packer-subnet" {
-  name                 = "packer-subnet"                           # Name of the subnet
-  resource_group_name  = azurerm_resource_group.flask-vmss.name       # Resource group for the subnet
-  virtual_network_name = azurerm_virtual_network.packer-vnet.name  # Parent virtual network name
-  address_prefixes     = ["10.0.0.0/25"]                              # Address prefix for the subnet
+  name                 = "packer-subnet"                             # Name of the subnet
+  resource_group_name  = azurerm_resource_group.packer_rg.name       # Resource group for the subnet
+  virtual_network_name = azurerm_virtual_network.packer-vnet.name    # Parent virtual network name
+  address_prefixes     = ["10.0.0.0/25"]                             # Address prefix for the subnet
 }
 
 # Define the Azure Bastion subnet
 resource "azurerm_subnet" "bastion-subnet" {
-  name                 = "AzureBastionSubnet"                         # Required name for Azure Bastion
-  resource_group_name  = azurerm_resource_group.flask-vmss.name       # Resource group for the subnet
-  virtual_network_name = azurerm_virtual_network.packer-vnet.name  # Parent virtual network name
-  address_prefixes     = ["10.0.1.0/25"]                              # Address prefix for the subnet
+  name                 = "AzureBastionSubnet"                        # Required name for Azure Bastion
+  resource_group_name  = azurerm_resource_group.packer_rg.name       # Resource group for the subnet
+  virtual_network_name = azurerm_virtual_network.packer-vnet.name    # Parent virtual network name
+  address_prefixes     = ["10.0.1.0/25"]                             # Address prefix for the subnet
 }
 
 # Define a network security group for the Flask app
 resource "azurerm_network_security_group" "packer-nsg" {
-  name                = "packer-nsg"                                  # Name of the NSG
-  location            = azurerm_resource_group.flask-vmss.location    # Azure region
-  resource_group_name = azurerm_resource_group.flask-vmss.name        # Resource group for the NSG
+  name                = "packer-nsg"                                 # Name of the NSG
+  location            = azurerm_resource_group.packer_rg.location    # Azure region
+  resource_group_name = azurerm_resource_group.packer_rg.name        # Resource group for the NSG
 
   security_rule {
     name                       = "Allow-SSH"                          # Rule name: Allow SSH
@@ -67,8 +67,8 @@ resource "azurerm_network_security_group" "packer-nsg" {
 # Define a network security group for the Azure Bastion
 resource "azurerm_network_security_group" "bastion-nsg" {
   name                = "bastion-nsg"                                 # Name of the NSG
-  location            = azurerm_resource_group.flask-vmss.location    # Azure region
-  resource_group_name = azurerm_resource_group.flask-vmss.name        # Resource group for the NSG
+  location            = azurerm_resource_group.packer_rg.location    # Azure region
+  resource_group_name = azurerm_resource_group.packer_rg.name        # Resource group for the NSG
 
   security_rule {
     name                       = "GatewayManager"                     # Rule name: Gateway Manager
@@ -122,8 +122,8 @@ resource "azurerm_network_security_group" "bastion-nsg" {
 # Create a Public IP for the Bastion host
 resource "azurerm_public_ip" "bastion-ip" {
   name                = "bastion-public-ip"                           # Name of the public IP
-  location            = azurerm_resource_group.flask-vmss.location    # Azure region
-  resource_group_name = azurerm_resource_group.flask-vmss.name        # Resource group for the public IP
+  location            = azurerm_resource_group.packer_rg.location    # Azure region
+  resource_group_name = azurerm_resource_group.packer_rg.name        # Resource group for the public IP
   allocation_method   = "Static"                                      # Allocation method for the public IP
   sku                 = "Standard"                                    # Required for Azure Bastion
 }
@@ -131,8 +131,8 @@ resource "azurerm_public_ip" "bastion-ip" {
 # Create the Azure Bastion resource
 resource "azurerm_bastion_host" "bastion-host" {
   name                = "bastion-host"                                # Name of the Bastion host
-  location            = azurerm_resource_group.flask-vmss.location    # Azure region
-  resource_group_name = azurerm_resource_group.flask-vmss.name        # Resource group for the Bastion host
+  location            = azurerm_resource_group.packer_rg.location     # Azure region
+  resource_group_name = azurerm_resource_group.packer_rg.name         # Resource group for the Bastion host
 
   ip_configuration {
     name                 = "bastion-ip-config"                        # Name of the IP configuration
