@@ -10,7 +10,7 @@ data "azurerm_subscription" "primary" {}
 data "azurerm_client_config" "current" {}
 
 # Define the resource group for the deployment
-resource "azurerm_resource_group" "flask-vmss" {
+resource "azurerm_resource_group" "packer_rg" {
   name     = "packer-rg"           # Name of the resource group
   location = "Central US"          # Azure region for the resource group
 }
