@@ -82,7 +82,7 @@ source "azure-arm" "games_image" {
   #os_disk_managed_disk_type   = "Premium_L RS"          # Use Premium SSD for faster I/O
 
   managed_image_name                 = "games_image_${local.timestamp}"     # Unique image name using timestamp
-  managed_image_resource_group_name = "packer-rg"         # RG where the custom image will be stored
+  managed_image_resource_group_name = var.resource_group # RG where the custom image will be stored
 }
 
 ############################################
