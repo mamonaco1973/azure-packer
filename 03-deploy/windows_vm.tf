@@ -49,7 +49,7 @@ resource "azurerm_windows_virtual_machine" "desktop_vm" {
   provision_vm_agent    = true                                           # Required for extensions and custom script execution
 
   network_interface_ids = [
-    azurerm_network_interface.desktop_nic.id                               # Attach previously defined NIC to the VM
+    azurerm_network_interface.desktop_nic.id                             # Attach previously defined NIC to the VM
   ]
 
   os_disk {
