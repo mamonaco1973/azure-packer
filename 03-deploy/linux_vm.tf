@@ -24,6 +24,13 @@ resource "azurerm_public_ip" "games_pip" {
                                                               # Unique domain label for the public IP
 }
 
+# Generate a secure random alphanumeric password for ubuntu
+resource "random_password" "ubuntu" {
+  length  = 24         # Total password length: 24 characters
+  special = false      # Exclude special characters (alphanumeric only for compatibility)
+}
+
+
 # Define a Linux virtual machine
 resource "azurerm_linux_virtual_machine" "games_vm" {
   name                = "games-vm"                            # Name of the VM
@@ -31,8 +38,9 @@ resource "azurerm_linux_virtual_machine" "games_vm" {
   resource_group_name = data.azurerm_resource_group.packer_rg.name     # Links to the resource group
   size                = "Standard_B1s"                        # VM size
   admin_username      = "ubuntu"                              # Admin username for the VM
+  admin_password      = random_password.ubuntu.result
   disable_password_authentication = false
-  
+
   network_interface_ids = [
     azurerm_network_interface.games_nic.id                      # Associate NIC with the VM
   ]
