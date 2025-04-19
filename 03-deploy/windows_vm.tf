@@ -43,7 +43,7 @@ resource "azurerm_windows_virtual_machine" "desktop_vm" {
   name                  = "desktop-vm"                                   # Name of the VM in the Azure portal
   location              = data.azurerm_resource_group.packer_rg.location # Must match resource group location
   resource_group_name   = data.azurerm_resource_group.packer_rg.name     # VM belongs to this RG
-  size                  = "Standard_B1s"                                 # Small VM size for basic tasks
+  size                  = "Standard_B1ms"                                # Small VM size for basic tasks
   admin_username        = "azureadmin"                                   # Windows admin login user 
   admin_password        = random_password.windows.result                 # Secure random password
   provision_vm_agent    = true                                           # Required for extensions and custom script execution
