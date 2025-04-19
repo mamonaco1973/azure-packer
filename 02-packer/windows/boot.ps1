@@ -1,5 +1,5 @@
 try {
-    echo "NOTE: AMI provisioned boot script ran" > c:\mcloud\boot.log
+    echo "NOTE: Image provisioned boot script ran" > c:\mcloud\boot.log
 }
 catch {
     Write-Error "An error occurred in the boot script."
