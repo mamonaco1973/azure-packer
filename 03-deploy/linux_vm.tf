@@ -18,7 +18,7 @@ resource "azurerm_public_ip" "games_pip" {
   name                = "games-pip"                           # Name of the public IP
   location            = data.azurerm_resource_group.packer_rg.location # Public IP location matches the resource group
   resource_group_name = data.azurerm_resource_group.packer_rg.name     # Links to the resource group
-  allocation_method   = "Dynamic"                             # Dynamically assign public IP
+  allocation_method   = "Static"                              # Dynamically assign public IP
   sku                 = "Standard"                            # Use basic SKU
   domain_name_label   = "games-${substr(data.azurerm_client_config.current.subscription_id, 0, 6)}" 
                                                               # Unique domain label for the public IP
