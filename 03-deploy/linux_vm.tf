@@ -6,10 +6,10 @@ resource "azurerm_network_interface" "games_nic" {
 
   # IP configuration for the NIC
   ip_configuration {
-    name                          = "internal"                 # IP config name
-    subnet_id                     = azurerm_subnet.setup.id    # Subnet ID
-    private_ip_address_allocation = "Dynamic"                  # Dynamically assign private IP
-    public_ip_address_id          = azurerm_public_ip.setup.id # Associate with a public IP
+    name                          = "internal"                     # IP config name
+    subnet_id                     = data.azurerm_subnet.packer_subnet.id   # Subnet ID
+    private_ip_address_allocation = "Dynamic"                      # Dynamically assign private IP
+    public_ip_address_id          = azurerm_public_ip.games_pip.id # Associate with a public IP
   }
 }
 
