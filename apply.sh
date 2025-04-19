@@ -20,18 +20,31 @@ password=$(echo "$secretsJson" | jq -r '.password')
  
 
 cd 02-packer
-cd linux
 
+cd linux
+# packer init .
+
+# packer build \
+#   -var="client_id=$ARM_CLIENT_ID" \
+#   -var="client_secret=$ARM_CLIENT_SECRET" \
+#   -var="subscription_id=$ARM_SUBSCRIPTION_ID" \
+#   -var="tenant_id=$ARM_TENANT_ID" \
+#   -var="password=$password" \
+#   linux_image.pkr.hcl
+
+cd ..
+
+
+cd windows
 
 packer init .
-
 packer build \
   -var="client_id=$ARM_CLIENT_ID" \
   -var="client_secret=$ARM_CLIENT_SECRET" \
   -var="subscription_id=$ARM_SUBSCRIPTION_ID" \
   -var="tenant_id=$ARM_TENANT_ID" \
   -var="password=$password" \
-  linux_image.pkr.hcl
+  windows_image.pkr.hcl
 
 cd ..
 
