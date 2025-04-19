@@ -54,6 +54,11 @@ variable "password" {
   default     = ""                                       # Must be overridden securely via env var or CLI
 }
 
+variable "resource_group" {
+  description = "Resource group where the VM image will be created"
+  type        = string
+}
+
 ############################################
 # SOURCE BLOCK: AZURE CUSTOM IMAGE CREATION
 ############################################
