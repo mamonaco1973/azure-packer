@@ -30,6 +30,7 @@ cd linux
 #   -var="subscription_id=$ARM_SUBSCRIPTION_ID" \
 #   -var="tenant_id=$ARM_TENANT_ID" \
 #   -var="password=$password" \
+#   -var="resource_group=packer-rg" \
 #   linux_image.pkr.hcl
 
 cd ..
@@ -44,6 +45,7 @@ packer build \
   -var="subscription_id=$ARM_SUBSCRIPTION_ID" \
   -var="tenant_id=$ARM_TENANT_ID" \
   -var="password=$password" \
+  -var="resource_group=packer-rg" \
   windows_image.pkr.hcl
 
 cd ..
