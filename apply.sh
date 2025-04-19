@@ -45,7 +45,7 @@ password=$(echo "$secretsJson" | jq -r '.password')  # Extract `password` field 
 #-------------------------------------------------------------------------------
 cd 02-packer/linux                  # Enter Linux Packer template directory
 packer init .                       # Initialize Packer plugins
-packer build \                      # Run image build using provided vars
+packer build \                      
   -var="client_id=$ARM_CLIENT_ID" \
   -var="client_secret=$ARM_CLIENT_SECRET" \
   -var="subscription_id=$ARM_SUBSCRIPTION_ID" \
@@ -61,7 +61,7 @@ cd ..                               # Return to 02-packer
 #-------------------------------------------------------------------------------
 cd windows                          # Enter Windows Packer template directory
 packer init .                       # Initialize Packer plugins
-packer build \                      # Run image build using provided vars
+packer build \                      
   -var="client_id=$ARM_CLIENT_ID" \
   -var="client_secret=$ARM_CLIENT_SECRET" \
   -var="subscription_id=$ARM_SUBSCRIPTION_ID" \
