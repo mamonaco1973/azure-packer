@@ -1,37 +1,48 @@
-# Define the AzureRM provider
+############################################
+# AZURE PROVIDER CONFIGURATION
+############################################
 provider "azurerm" {
-  features {}                                         # Enable all default features
+  features {}                                                                 # Enables all default provider features (required boilerplate)
 }
 
-# Retrieve subscription information
-data "azurerm_subscription" "primary" {}
+############################################
+# DATA SOURCES: AZURE CONTEXT & METADATA
+############################################
 
-# Retrieve current client configuration
-data "azurerm_client_config" "current" {}
+# Retrieve details about the active Azure subscription
+data "azurerm_subscription" "primary" {}                                      # Useful for referencing subscription ID, display name, etc.
 
+# Retrieve details about the currently authenticated Azure client
+data "azurerm_client_config" "current" {}                                     # Used to fetch tenant ID, object ID, client ID, and subscription
 
-# Retrieve the resource group details
+############################################
+# RESOURCE GROUP: LOOKUP FOR EXISTING RG
+############################################
 data "azurerm_resource_group" "packer_rg" {
-  name = "packer-rg"                              
+  name = "packer-rg"                                                          # Name of the existing resource group used for image and network
 }
 
-# Retrieve the latest Azure image from the resource group
+############################################
+# CUSTOM IMAGE: LOOKUP FOR VM SOURCE IMAGE
+############################################
 data "azurerm_image" "games_image" {
-  name                = var.games_image_name                                 # Name of the custom image
-  resource_group_name = data.azurerm_resource_group.packer_rg.name # Resource group for the image
+  name                = var.games_image_name                                  # Custom image name passed in as variable
+  resource_group_name = data.azurerm_resource_group.packer_rg.name           # Use resource group where the image is stored
 }
 
-# Retrieve the virtual network details
+############################################
+# VIRTUAL NETWORK: LOOKUP FOR NETWORK CONTEXT
+############################################
 data "azurerm_virtual_network" "packer_vnet" {
-  name                = "packer-vnet"                               
-  resource_group_name = data.azurerm_resource_group.packer_rg.name 
+  name                = "packer-vnet"                                         # Name of the existing virtual network to use
+  resource_group_name = data.azurerm_resource_group.packer_rg.name           # Must be in the same resource group as the rest of the setup
 }
 
-# Retrieve the subnet details
+############################################
+# SUBNET: LOOKUP FOR PLACEMENT OF RESOURCES
+############################################
 data "azurerm_subnet" "packer_subnet" {
-  name                 = "packer-subnet"                               # Subnet name
-  virtual_network_name = data.azurerm_virtual_network.packer_vnet.name # Parent VNet name
-  resource_group_name  = data.azurerm_resource_group.packer_rg.name    # Resource group name
+  name                 = "packer-subnet"                                      # Subnet name (must exist inside the VNet above)
+  virtual_network_name = data.azurerm_virtual_network.packer_vnet.name       # Reference the parent virtual network
+  resource_group_name  = data.azurerm_resource_group.packer_rg.name          # Must match resource group where the subnet resides
 }
-
-

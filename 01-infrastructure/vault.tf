@@ -1,45 +1,70 @@
+############################################
+# RANDOM STRING: UNIQUE KEY VAULT SUFFIX
+############################################
 resource "random_string" "key_vault_suffix" {
-  length  = 8
-  special = false
-  upper   = false
+  length  = 8                      # Generate an 8-character string
+  special = false                  # Exclude special characters (for DNS-safe naming)
+  upper   = false                  # Use only lowercase alphanumeric characters
+                                   # Final result will be appended to Key Vault name for uniqueness
 }
 
-# Create an Azure Key Vault
+############################################
+# AZURE KEY VAULT: CENTRALIZED SECRETS STORE
+############################################
 resource "azurerm_key_vault" "packer_key_vault" {
   name                        = "packer-kv-${random_string.key_vault_suffix.result}"  
-  resource_group_name         = azurerm_resource_group.packer_rg.name
-  location                    = azurerm_resource_group.packer_rg.location
-  sku_name                    = "standard"
-  tenant_id                   = data.azurerm_client_config.current.tenant_id
-  purge_protection_enabled    = false
-  enable_rbac_authorization   = true
+                                   # Dynamically generate a unique Key Vault name using the random string
+  resource_group_name         = azurerm_resource_group.packer_rg.name                  
+                                   # Place the Key Vault inside the existing "packer_rg" resource group
+  location                    = azurerm_resource_group.packer_rg.location             
+                                   # Deploy in the same region as the resource group
+  sku_name                    = "standard"                                            
+                                   # Use Standard SKU (most common for general-purpose secrets management)
+  tenant_id                   = data.azurerm_client_config.current.tenant_id          
+                                   # Azure AD tenant ID from the currently authenticated user context
+  purge_protection_enabled    = false                                                 
+                                   # Disable purge protection (irreversible deletion allowed)
+  enable_rbac_authorization   = true                                                  
+                                   # Use RBAC (role-based access control) instead of Access Policies
 }
 
-# Assign RBAC role to the current client for managing secrets
+############################################
+# RBAC ASSIGNMENT: ALLOW USER TO MANAGE SECRETS
+############################################
 resource "azurerm_role_assignment" "kv_role_assignment" {
-  scope                = azurerm_key_vault.packer_key_vault.id
-  role_definition_name = "Key Vault Secrets Officer"
-  principal_id         = data.azurerm_client_config.current.object_id
+  scope                = azurerm_key_vault.packer_key_vault.id                        
+                                   # Apply the role at the Key Vault resource level
+  role_definition_name = "Key Vault Secrets Officer"                                  
+                                   # Grants permissions to read/write secrets (not certificates or keys)
+  principal_id         = data.azurerm_client_config.current.object_id                 
+                                   # Assign role to currently authenticated user or service principal
 }
 
-# --- User: Packer ---
-
-# Generate a secure random alphanumeric password
+############################################
+# RANDOM PASSWORD: SECURE CREDENTIAL FOR PACKER
+############################################
 resource "random_password" "generated" {
-  length  = 24         # Total password length: 24 characters
-  special = false      # Exclude special characters (alphanumeric only for compatibility)
+  length  = 24                    # Password length (strong enough for automation)
+  special = false                 # No special characters (avoids compatibility issues with some scripts)
 }
 
-
-# Create secret for "packer" credentials
-
+############################################
+# KEY VAULT SECRET: STORE PACKER CREDENTIALS
+############################################
 resource "azurerm_key_vault_secret" "packer_secret" {
-  name         = "packer-credentials"
-  value        = jsonencode({
-    username = "packer"
-    password = random_password.generated.result
-  })
-  key_vault_id = azurerm_key_vault.packer_key_vault.id
-  depends_on = [ azurerm_role_assignment.kv_role_assignment ]
-  content_type = "application/json"
+  name         = "packer-credentials"                                                  
+                                   # Secret name inside the Key Vault
+  value        = jsonencode({                                                          
+    username = "packer"                                                                
+    password = random_password.generated.result                                        
+  })                                                                                   
+                                   # Store a JSON-encoded object with username and generated password
+
+  key_vault_id = azurerm_key_vault.packer_key_vault.id                                 
+                                   # Reference the ID of the Key Vault created earlier
+  depends_on   = [ azurerm_role_assignment.kv_role_assignment ]                        
+                                   # Ensure role assignment is completed before attempting to write secrets
+
+  content_type = "application/json"                                                    
+                                   # Add metadata describing the format of the stored secret value
 }

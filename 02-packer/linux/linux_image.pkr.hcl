@@ -5,94 +5,107 @@
 packer {
   required_plugins {
     azure = {
-      source   = "github.com/hashicorp/azure"
-      version  = "~> 2"
+      source   = "github.com/hashicorp/azure"            # Official Azure plugin for Packer
+      version  = "~> 2"                                  # Lock to major version 2 for compatibility
     }
   }
 }
 
+############################################
+# LOCALS: TIMESTAMP UTILITY
+############################################
+
 locals {
-  timestamp = regex_replace(timestamp(), "[- TZ:]", "")
+  timestamp = regex_replace(timestamp(), "[- TZ:]", "") # Generate compact timestamp (YYYYMMDDHHMMSS)
+                                                       # Used for unique image names
 }
 
+############################################
+# REQUIRED VARIABLES: AZURE CREDENTIALS
+############################################
 
+# Azure AD App client ID
 variable "client_id" {
   description = "Azure Client ID"
   type        = string
 }
 
+# Azure AD App client secret
 variable "client_secret" {
   description = "Azure Client Secret"
   type        = string
 }
 
+# Azure Subscription ID
 variable "subscription_id" {
   description = "Azure Subscription ID"
   type        = string
 }
 
+# Azure Tenant ID (AAD directory ID)
 variable "tenant_id" {
   description = "Azure Tenant ID"
   type        = string
 }
 
-
+# Password passed into SSH config script (for enabling password auth)
 variable "password" {
-  description = "The password for the packer account"    # Will be passed into SSH provisioning script
-  default     = ""                                       # Must be overridden securely via env or CLI
-}
-
-
-############################################
-# AMAZON-EBS SOURCE BLOCK: BUILD CUSTOM UBUNTU IMAGE
-############################################
-
-source "azure-arm"  "games_image" {
-  client_id       = var.client_id
-  client_secret   = var.client_secret
-  subscription_id = var.subscription_id
-  tenant_id       = var.tenant_id
-
-  image_offer                       = "ubuntu-24_04-lts"
-  image_publisher                   = "canonical"
-  image_sku                         = "server"
-  location                          = "Central US"
-  vm_size                           = "Standard_B1s"
-  os_type                           = "Linux"
-
-  managed_image_name                = "games_image_${local.timestamp}"
-  managed_image_resource_group_name = "packer-rg"
+  description = "The password for the packer account"
+  default     = ""                                       # Must be overridden securely via env var or CLI
 }
 
 ############################################
-# BUILD BLOCK: PROVISION FILES AND RUN SETUP SCRIPTS
+# SOURCE BLOCK: AZURE CUSTOM IMAGE CREATION
+############################################
+
+source "azure-arm" "games_image" {
+  client_id       = var.client_id                        # Auth: Azure AD App client ID
+  client_secret   = var.client_secret                    # Auth: Azure AD App secret
+  subscription_id = var.subscription_id                 # Auth: Azure subscription context
+  tenant_id       = var.tenant_id                        # Auth: Azure AD tenant context
+
+  # Base image to clone (Ubuntu 24.04 LTS)
+  image_offer     = "ubuntu-24_04-lts"                   # Marketplace offer name
+  image_publisher = "canonical"                          # Publisher: Canonical (Ubuntu)
+  image_sku       = "server"                             # Image SKU: server edition
+
+  location        = "Central US"                         # Azure region to build in
+  vm_size         = "Standard_B1s"                       # Lightweight VM type for low-cost builds
+  os_type         = "Linux"                              # Operating system type
+
+  managed_image_name                 = "games_image_${local.timestamp}"     # Unique image name using timestamp
+  managed_image_resource_group_name = "packer-rg"         # RG where the custom image will be stored
+}
+
+############################################
+# BUILD BLOCK: INSTALLATION & FILE COPY LOGIC
 ############################################
 
 build {
 
-  sources = ["source.azure-arm.games_image"]
+  sources = ["source.azure-arm.games_image"]             # Link build block to source image definition
 
-  # Create a temp directory for HTML files
+  # Step 1: Create temp working directory on image
   provisioner "shell" {
-    inline = ["mkdir -p /tmp/html"]                      # Ensure target directory exists on VM
+    inline = ["mkdir -p /tmp/html"]                      # Ensures destination path exists before file copy
   }
 
-  # Copy local HTML files to the instance
+  # Step 2: Copy static site assets (HTML files) from local to the VM
   provisioner "file" {
-    source      = "./html/"                              # Source directory from local machine
-    destination = "/tmp/html/"                           # Target directory inside VM
+    source      = "./html/"                              # Local directory with content
+    destination = "/tmp/html/"                           # Target location on the image's disk
   }
 
-  # Run install script inside the instance
+  # Step 3: Run installation script to set up packages / web server
   provisioner "shell" {
-    script = "./install.sh"                              # Installs and configures required packages
+    script = "./install.sh"                              # Custom provisioning script to install dependencies
   }
 
-  # Run SSH configuration script, passing in a password variable
+  # Step 4: Run SSH configuration script (enables password auth, etc.)
   provisioner "shell" {
-    script = "./config_ssh.sh"                           # Custom script to enable SSH password login
+    script = "./config_ssh.sh"                           # Custom script to tweak SSH server behavior
     environment_vars = [
-      "PACKER_PASSWORD=${var.password}"                  # Export password to the script environment
+      "PACKER_PASSWORD=${var.password}"                  # Pass password into script securely as env var
     ]
   }
 }
