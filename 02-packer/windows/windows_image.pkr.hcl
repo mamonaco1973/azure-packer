@@ -83,7 +83,7 @@ source "azure-arm" "desktop_image" {
   communicator         = "winrm"
   winrm_use_ssl        = true
   winrm_insecure       = true
-  winrm_username       = "packer"
+  winrm_username       = "builder"
   winrm_password       = var.password
 
   custom_data = base64encode(templatefile("./bootstrap_win.ps1", {
