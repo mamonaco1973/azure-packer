@@ -86,9 +86,9 @@ source "azure-arm" "desktop_image" {
   winrm_username       = "packer"
   winrm_password       = var.password
 
-  custom_data = templatefile("./bootstrap_win.ps1", {
-      password = var.password
-  })
+  custom_data = base64encode(templatefile("./bootstrap_win.ps1", {
+   password = var.password
+  }))
 }
 
 ############################################
