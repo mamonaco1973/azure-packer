@@ -31,6 +31,7 @@ resource "azurerm_linux_virtual_machine" "games_vm" {
   resource_group_name = data.azurerm_resource_group.packer_rg.name     # Links to the resource group
   size                = "Standard_B1s"                        # VM size
   admin_username      = "ubuntu"                              # Admin username for the VM
+  disable_password_authentication = false
   
   network_interface_ids = [
     azurerm_network_interface.games_nic.id                      # Associate NIC with the VM
