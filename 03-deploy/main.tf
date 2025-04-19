@@ -23,10 +23,18 @@ data "azurerm_resource_group" "packer_rg" {
 }
 
 ############################################
-# CUSTOM IMAGE: LOOKUP FOR VM SOURCE IMAGE
+# CUSTOM IMAGE: LOOKUP FOR VM SOURCE IMAGE FOR GAMES
 ############################################
 data "azurerm_image" "games_image" {
-  name                = var.games_image_name                                  # Custom image name passed in as variable
+  name                = var.games_image_name                                 # Custom image name passed in as variable
+  resource_group_name = data.azurerm_resource_group.packer_rg.name           # Use resource group where the image is stored
+}
+
+############################################
+# CUSTOM IMAGE: LOOKUP FOR VM SOURCE IMAGE FOR DESKTOP
+############################################
+data "azurerm_image" "desktop_image" {
+  name                = var.desktop_image_name                               # Custom image name passed in as variable
   resource_group_name = data.azurerm_resource_group.packer_rg.name           # Use resource group where the image is stored
 }
 
@@ -34,7 +42,7 @@ data "azurerm_image" "games_image" {
 # VIRTUAL NETWORK: LOOKUP FOR NETWORK CONTEXT
 ############################################
 data "azurerm_virtual_network" "packer_vnet" {
-  name                = "packer-vnet"                                         # Name of the existing virtual network to use
+  name                = "packer-vnet"                                        # Name of the existing virtual network to use
   resource_group_name = data.azurerm_resource_group.packer_rg.name           # Must be in the same resource group as the rest of the setup
 }
 
@@ -42,7 +50,7 @@ data "azurerm_virtual_network" "packer_vnet" {
 # SUBNET: LOOKUP FOR PLACEMENT OF RESOURCES
 ############################################
 data "azurerm_subnet" "packer_subnet" {
-  name                 = "packer-subnet"                                      # Subnet name (must exist inside the VNet above)
+  name                 = "packer-subnet"                                     # Subnet name (must exist inside the VNet above)
   virtual_network_name = data.azurerm_virtual_network.packer_vnet.name       # Reference the parent virtual network
   resource_group_name  = data.azurerm_resource_group.packer_rg.name          # Must match resource group where the subnet resides
 }

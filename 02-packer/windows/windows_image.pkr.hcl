@@ -76,7 +76,7 @@ source "azure-arm" "desktop_image" {
   vm_size              = "Standard_D2s_v3"                     # Similar to t3.medium
 
   # Target image settings
-  managed_image_name   = "desktop-image-${local.timestamp}"
+  managed_image_name   = "desktop_image_${local.timestamp}"
   managed_image_resource_group_name = var.resource_group
 
   # WinRM Configuration
