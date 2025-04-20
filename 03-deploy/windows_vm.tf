@@ -78,8 +78,18 @@ resource "azurerm_virtual_machine_extension" "desktop_run_custom_data" {
   type_handler_version       = "1.10"                                          # Stable handler version that supports PowerShell and file operations
   auto_upgrade_minor_version = true                                            # Allow minor version upgrades for compatibility and security
 
-  settings = jsonencode({
-    commandToExecute = "powershell -ExecutionPolicy Bypass -Command \"if (Test-Path 'C:\\AzureData\\CustomData.bin') { Copy-Item 'C:\\AzureData\\CustomData.bin' 'C:\\AzureData\\custom_data.ps1' -Force; powershell -ExecutionPolicy Bypass -File 'C:\\AzureData\\custom_data.ps1' } else { Write-Host 'CustomData.bin not found.' }\""
+   settings = jsonencode({
+    commandToExecute = join(" ", [
+      "powershell",
+      "-ExecutionPolicy Bypass",
+      "-Command \"",
+      "if (Test-Path 'C:\\AzureData\\CustomData.bin') {",
+        "Copy-Item 'C:\\AzureData\\CustomData.bin' 'C:\\AzureData\\custom_data.ps1' -Force;",
+        "powershell -ExecutionPolicy Bypass -File 'C:\\AzureData\\custom_data.ps1'",
+      "} else {",
+        "Write-Host 'CustomData.bin not found.'",
+      "}\""
+    ])
   })
 }
 
