@@ -66,7 +66,7 @@ variable "resource_group" {
 source "azure-arm" "games_image" {
   client_id       = var.client_id                        # Auth: Azure AD App client ID
   client_secret   = var.client_secret                    # Auth: Azure AD App secret
-  subscription_id = var.subscription_id                 # Auth: Azure subscription context
+  subscription_id = var.subscription_id                 s # Auth: Azure subscription context
   tenant_id       = var.tenant_id                        # Auth: Azure AD tenant context
 
   # Base image to clone (Ubuntu 24.04 LTS)
@@ -74,7 +74,7 @@ source "azure-arm" "games_image" {
   image_publisher = "canonical"                          # Publisher: Canonical (Ubuntu)
   image_sku       = "server"                             # Image SKU: server edition
   
-  ssh_username    = "builder"                            # Username for the build
+  ssh_username    = "ubuntu"                             # Username for the build
 
   location        = "Central US"                         # Azure region to build in
   vm_size         = "Standard_B1s"                       # Lightweight VM type for low-cost builds
