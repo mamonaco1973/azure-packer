@@ -73,13 +73,15 @@ source "azure-arm" "games_image" {
   image_offer     = "ubuntu-24_04-lts"                   # Marketplace offer name
   image_publisher = "canonical"                          # Publisher: Canonical (Ubuntu)
   image_sku       = "server"                             # Image SKU: server edition
+  
+  ssh_username    = "builder"                            # Username for the build
 
   location        = "Central US"                         # Azure region to build in
   vm_size         = "Standard_B1s"                       # Lightweight VM type for low-cost builds
   os_type         = "Linux"                              # Operating system type
 
   #os_disk_size_gb             = 64                      # Set OS disk size (in GB)
-  #os_disk_managed_disk_type   = "Premium_L RS"          # Use Premium SSD for faster I/O
+  #os_disk_managed_disk_type   = "Premium_LRS"           # Use Premium SSD for faster I/O
 
   managed_image_name                 = "games_image_${local.timestamp}"     # Unique image name using timestamp
   managed_image_resource_group_name = var.resource_group # RG where the custom image will be stored
