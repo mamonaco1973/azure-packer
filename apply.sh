@@ -109,7 +109,7 @@ fi
 #-------------------------------------------------------------------------------
 cd 03-deploy                        # Navigate to deployment Terraform folder
 terraform init                      # Initialize Terraform
-terraform apply \                   # Deploy infrastructure using built image names
+terraform apply \
   -var="games_image_name=$games_image_name" \
   -var="desktop_image_name=$desktop_image_name" \
   -auto-approve                     # Skip confirmation prompts
