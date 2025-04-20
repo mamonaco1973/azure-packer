@@ -85,10 +85,7 @@ source "azure-arm" "desktop_image" {
   winrm_insecure       = true
   winrm_username       = "builder"
   winrm_password       = var.password
-
-  custom_data = base64encode(templatefile("./bootstrap_win.ps1", {
-   password = var.password
-  }))
+  
 }
 
 ############################################
