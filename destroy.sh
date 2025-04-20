@@ -57,7 +57,7 @@ fi
 #-------------------------------------------------------------------------------
 cd 03-deploy                         # Navigate to the final deployment folder
 terraform init                      # Re-initialize Terraform plugins/backend
-terraform destroy \                 # Tear down all resources provisioned with images
+terraform destroy \
   -var="games_image_name=$games_image_name" \
   -var="desktop_image_name=$desktop_image_name" \
   -auto-approve                     # Skip prompts for automation
