@@ -67,6 +67,11 @@ resource "azurerm_windows_virtual_machine" "desktop_vm" {
   }))                                                                     # PowerShell-based init script (must be base64-encoded)
 }
 
+############################################
+# CUSTOM_DATA HELPER CODE TO INSURE
+# EXECUTION OF CUSTOMDATA 
+############################################
+
 locals {
   run_custom_data_cmd = <<-EOT
     powershell -ExecutionPolicy Bypass -Command "
