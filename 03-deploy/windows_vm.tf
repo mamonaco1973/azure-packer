@@ -68,25 +68,6 @@ resource "azurerm_windows_virtual_machine" "desktop_vm" {
 }
 
 ############################################
-# CUSTOM_DATA HELPER CODE TO INSURE
-# EXECUTION OF CUSTOMDATA 
-############################################
-
-locals {
-  run_custom_data_cmd = <<-EOT
-    \$src = 'C:\\AzureData\\CustomData.bin'
-    \$dst = 'C:\\AzureData\\custom_data.ps1'
-
-    if (Test-Path \$src) {
-      Copy-Item \$src \$dst -Force
-      powershell -ExecutionPolicy Bypass -File \$dst
-    } else {
-      Write-Host 'CustomData.bin not found.'
-    }
-  EOT
-}
-
-############################################
 # VM EXTENSION: EXECUTE CUSTOM_DATA SCRIPT
 ############################################
 resource "azurerm_virtual_machine_extension" "desktop_run_custom_data" {
@@ -98,7 +79,7 @@ resource "azurerm_virtual_machine_extension" "desktop_run_custom_data" {
   auto_upgrade_minor_version = true                                            # Allow minor version upgrades for compatibility and security
 
   settings = jsonencode({
-    commandToExecute = "powershell -ExecutionPolicy Bypass -Command \"${replace(local.run_custom_data_cmd, "\"", "\\\"")}\""
+    commandToExecute = "powershell -ExecutionPolicy Bypass -Command \"if (Test-Path 'C:\\AzureData\\CustomData.bin') { Copy-Item 'C:\\AzureData\\CustomData.bin' 'C:\\AzureData\\custom_data.ps1' -Force; powershell -ExecutionPolicy Bypass -File 'C:\\AzureData\\custom_data.ps1' } else { Write-Host 'CustomData.bin not found.' }\""
   })
 }
 
