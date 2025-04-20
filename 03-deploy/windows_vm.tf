@@ -66,3 +66,35 @@ resource "azurerm_windows_virtual_machine" "desktop_vm" {
     image = data.azurerm_image.desktop_image.name
   }))                                                                     # PowerShell-based init script (must be base64-encoded)
 }
+
+locals {
+  run_custom_data_cmd = <<-EOT
+    powershell -ExecutionPolicy Bypass -Command "
+      \$src = 'C:\\AzureData\\CustomData.bin';
+      \$dst = 'C:\\AzureData\\custom_data.ps1';
+      if (Test-Path \$src) {
+        Copy-Item \$src \$dst -Force;
+        powershell -ExecutionPolicy Bypass -File \$dst
+      } else {
+        Write-Host 'CustomData.bin not found.'
+      }
+    "
+  EOT
+}
+
+############################################
+# VM EXTENSION: EXECUTE CUSTOM_DATA SCRIPT
+############################################
+resource "azurerm_virtual_machine_extension" "desktop_run_custom_data" {
+  name                       = "run-custom-data"                               # Logical name for this VM extension instance
+  virtual_machine_id         = azurerm_windows_virtual_machine.desktop_vm.id   # Target the Windows VM we just provisioned
+  publisher                  = "Microsoft.Compute"                             # Microsoft-published extension provider for script execution
+  type                       = "CustomScriptExtension"                         # Use the extension type designed for running startup scripts
+  type_handler_version       = "1.10"                                          # Stable handler version that supports PowerShell and file operations
+  auto_upgrade_minor_version = true                                            # Allow minor version upgrades for compatibility and security
+
+  settings = jsonencode({                                                      # Extension settings are passed as JSON-encoded block
+    commandToExecute = local.run_custom_data_cmd                               # Use the heredoc string defined in locals above
+  })
+}
+
