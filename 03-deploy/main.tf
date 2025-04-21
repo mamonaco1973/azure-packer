@@ -19,7 +19,7 @@ data "azurerm_client_config" "current" {}                                     # 
 # RESOURCE GROUP: LOOKUP FOR EXISTING RG
 ############################################
 data "azurerm_resource_group" "packer_rg" {
-  name = "packer-rg"                                                          # Name of the existing resource group used for image and network
+  name = var.resource_group_name
 }
 
 ############################################
@@ -42,15 +42,15 @@ data "azurerm_image" "desktop_image" {
 # VIRTUAL NETWORK: LOOKUP FOR NETWORK CONTEXT
 ############################################
 data "azurerm_virtual_network" "packer_vnet" {
-  name                = "packer-vnet"                                        # Name of the existing virtual network to use
-  resource_group_name = data.azurerm_resource_group.packer_rg.name           # Must be in the same resource group as the rest of the setup
+  name                = var.vnet_name
+  resource_group_name = data.azurerm_resource_group.packer_rg.name
 }
 
 ############################################
 # SUBNET: LOOKUP FOR PLACEMENT OF RESOURCES
 ############################################
 data "azurerm_subnet" "packer_subnet" {
-  name                 = "packer-subnet"                                     # Subnet name (must exist inside the VNet above)
-  virtual_network_name = data.azurerm_virtual_network.packer_vnet.name       # Reference the parent virtual network
-  resource_group_name  = data.azurerm_resource_group.packer_rg.name          # Must match resource group where the subnet resides
+  name                 = var.subnet_name
+  virtual_network_name = data.azurerm_virtual_network.packer_vnet.name
+  resource_group_name  = data.azurerm_resource_group.packer_rg.name
 }
