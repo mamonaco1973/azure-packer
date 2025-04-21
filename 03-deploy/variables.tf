@@ -40,10 +40,3 @@ variable "resource_group_name" {
   type        = string
   default     = "packer-rg"                         # Default value matches the original hardcoded value
 }
-
-############################################
-# RESOURCE GROUP: LOOKUP FOR EXISTING RG
-############################################
-data "azurerm_resource_group" "packer_rg" {
-  name = var.resource_group_name
-}
