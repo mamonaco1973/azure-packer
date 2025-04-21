@@ -93,3 +93,7 @@ resource "azurerm_virtual_machine_extension" "desktop_run_custom_data" {
   })
 }
 
+output "desktop_vm_fqdn" {
+  description = "FQDN of the public IP assigned to the games VM"
+  value       = azurerm_public_ip.desktop_pip.fqdn
+}

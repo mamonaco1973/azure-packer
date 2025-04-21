@@ -64,3 +64,9 @@ resource "azurerm_linux_virtual_machine" "games_vm" {
   }))
 
 }
+
+output "games_vm_fqdn" {
+  description = "FQDN of the public IP assigned to the games VM"
+  value       = azurerm_public_ip.games_pip.fqdn
+}
+
