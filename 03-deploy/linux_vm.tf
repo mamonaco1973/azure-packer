@@ -33,7 +33,7 @@ resource "azurerm_public_ip" "games_pip" {
 ############################################
 resource "random_password" "ubuntu" {
   length  = 24    # Length of generated password (strong entropy)
-  special = false # Avoid special characters (useful for services that can't handle them)
+  special = true  # Avoid special characters (useful for services that can't handle them)
 }
 
 ############################################
