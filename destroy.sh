@@ -1,90 +1,121 @@
 #!/bin/bash
-#===============================================================================
-# SCRIPT: Destroy Terraform Infrastructure and Delete Custom Azure Images
-#===============================================================================
-# This script performs the following steps:
-#   1. Authenticates to Azure using a service principal
-#   2. Retrieves the most recent custom VM images for 'games' and 'desktop'
-#   3. Destroys the deployed infrastructure using those images
-#   4. Deletes all VM images from the 'packer-rg' resource group
-#   5. Destroys base infrastructure (networking, etc.)
-#===============================================================================
+# ==============================================================================
+# AZURE TEARDOWN: DESTROY TERRAFORM STACK AND DELETE CUSTOM IMAGES
+# ==============================================================================
+#
+# This script tears down the full Azure environment created by the project.
+# It performs the following high-level actions:
+# - Authenticates to Azure using a Service Principal
+# - Resolves the latest custom managed images for Linux and Windows
+# - Destroys the VM deployment layer that references those images
+# - Deletes all managed images from the packer resource group
+# - Destroys the base infrastructure layer (networking, bastion, key vault, etc.)
+#
+# Notes:
+# - This script is destructive and cannot be undone.
+# - Images must be deleted after dependent resources are destroyed.
+# - Ensure ARM_* environment variables are set before running this script.
+# ==============================================================================
 
-#-------------------------------------------------------------------------------
-# STEP 1: Azure CLI Login using a Service Principal (suppress output)
-#-------------------------------------------------------------------------------
+# ==============================================================================
+# STEP 1: AUTHENTICATE TO AZURE (SERVICE PRINCIPAL)
+# ==============================================================================
+#
+# Authenticate using a Service Principal. Output is suppressed to avoid clutter
+# and prevent accidental credential disclosure in terminal logs.
+# ==============================================================================
+
 az login \
   --service-principal \
   --username "$ARM_CLIENT_ID" \
   --password "$ARM_CLIENT_SECRET" \
   --tenant "$ARM_TENANT_ID" \
-  > /dev/null 2>&1   # Silence all output to avoid leaking credentials or clutter
+  > /dev/null 2>&1
 
-#-------------------------------------------------------------------------------
-# STEP 2A: Fetch latest 'games_image' from the packer resource group
-#-------------------------------------------------------------------------------
+# ==============================================================================
+# STEP 2: RESOLVE LATEST MANAGED IMAGES FOR DESTROY
+# ==============================================================================
+#
+# The deployment stack takes image names as Terraform input variables.
+# Resolve the latest images by sorting on name, which includes timestamps.
+# ==============================================================================
+
 games_image_name=$(az image list \
   --resource-group packer-rg \
   --query "[?starts_with(name, 'games_image')]|sort_by(@, &name)[-1].name" \
   --output tsv)
 
-echo "NOTE: Using the latest image ($games_image_name) in packer-rg."
+echo "NOTE: Using the latest games image ($games_image_name) in packer-rg."
 
-# Fail-fast if no games_image is found
 if [ -z "$games_image_name" ]; then
-  echo "ERROR: No image with the prefix 'games_image' was found in 'packer-rg'. Exiting."
+  echo "ERROR: No image with prefix 'games_image' found in 'packer-rg'. Exiting."
   exit 1
 fi
 
-#-------------------------------------------------------------------------------
-# STEP 2B: Fetch latest 'desktop_image' from the packer resource group
-#-------------------------------------------------------------------------------
 desktop_image_name=$(az image list \
   --resource-group packer-rg \
   --query "[?starts_with(name, 'desktop_image')]|sort_by(@, &name)[-1].name" \
   --output tsv)
 
-echo "NOTE: Using the latest image ($desktop_image_name) in packer-rg."
+echo "NOTE: Using the latest desktop image ($desktop_image_name) in packer-rg."
 
-# Fail-fast if no desktop_image is found
 if [ -z "$desktop_image_name" ]; then
-  echo "ERROR: No image with the prefix 'desktop_image' was found in 'packer-rg'. Exiting."
+  echo "ERROR: No image with prefix 'desktop_image' found in 'packer-rg'. Exiting."
   exit 1
 fi
 
-#-------------------------------------------------------------------------------
-# STEP 3: Destroy all VMs and attached resources deployed in phase 03
-#-------------------------------------------------------------------------------
-cd 03-deploy                         # Navigate to the final deployment folder
-terraform init                      # Re-initialize Terraform plugins/backend
+# ==============================================================================
+# STEP 3: DESTROY VM DEPLOYMENT LAYER (03-DEPLOY)
+# ==============================================================================
+#
+# Destroy the final deployment resources that depend on the managed images.
+# The image names are passed so Terraform can properly resolve dependencies.
+# ==============================================================================
+
+cd 03-deploy
+terraform init
 terraform destroy \
   -var="games_image_name=$games_image_name" \
   -var="desktop_image_name=$desktop_image_name" \
-  -auto-approve                     # Skip prompts for automation
-cd ..                               # Return to project root
+  -auto-approve
+cd ..
 
-#-------------------------------------------------------------------------------
-# STEP 4: Loop through and delete ALL images in 'packer-rg' (fire-and-forget)
-#-------------------------------------------------------------------------------
+# ==============================================================================
+# STEP 4: DELETE ALL MANAGED IMAGES FROM packer-rg
+# ==============================================================================
+#
+# Remove all managed images in the packer resource group. This is performed
+# after the deployment layer is destroyed to avoid dependency conflicts.
+#
+# Notes:
+# - This deletes all images, not only games/desktop images.
+# - Failures are logged and the loop continues.
+# ==============================================================================
+
 az image list \
   --resource-group "packer-rg" \
   --query "[].name" \
-  -o tsv | while read -r IMAGE; do
+  --output tsv | while read -r IMAGE; do
     echo "Deleting image: $IMAGE"
     az image delete \
       --name "$IMAGE" \
       --resource-group "packer-rg" \
-      || echo "Failed to delete $IMAGE — skipping"
+      || echo "WARNING: Failed to delete $IMAGE (continuing)"
 done
 
-#-------------------------------------------------------------------------------
-# STEP 5: Destroy base infrastructure (VNet, Subnet, NICs, NSGs, etc.)
-#-------------------------------------------------------------------------------
-cd 01-infrastructure                # Go to base infra config
-terraform init                     # Initialize Terraform plugins/modules
-terraform destroy -auto-approve    # Destroy all foundational Azure resources
-cd ..                              # Return to root
+# ==============================================================================
+# STEP 5: DESTROY BASE INFRASTRUCTURE LAYER (01-INFRASTRUCTURE)
+# ==============================================================================
+#
+# Destroy foundational resources such as networking, subnets, NSGs, Bastion,
+# Key Vault, and any supporting components created in the infrastructure layer.
+# ==============================================================================
 
-#-------------------------------------------------------------------------------
+cd 01-infrastructure
+terraform init
+terraform destroy -auto-approve
+cd ..
+
+# ==============================================================================
 # END OF SCRIPT
-#-------------------------------------------------------------------------------
+# ==============================================================================

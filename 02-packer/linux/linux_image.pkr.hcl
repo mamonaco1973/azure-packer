@@ -1,121 +1,173 @@
-############################################
-# PACKER CONFIGURATION AND PLUGIN SETUP
-############################################
+# ==============================================================================
+# PACKER TEMPLATE: AZURE IMAGE BUILD CONFIGURATION
+# ==============================================================================
+#
+# This file defines a Packer build that creates a reusable Azure Managed Image.
+# The template is composed of:
+# - Packer plugin configuration (Azure ARM builder plugin)
+# - A timestamp local used to generate unique image names
+# - Input variables for Azure authentication and build parameters
+# - A source block describing the base image and build VM settings
+# - A build block that provisions the image (copy files + run scripts)
+#
+# Notes:
+# - Azure authentication is typically provided via a Service Principal.
+# - Do not hardcode secrets in templates; prefer env vars or CI secret stores.
+# - Managed image names must be unique within the target resource group.
+# - Keep provisioning scripts idempotent where possible for repeatable builds.
+# ==============================================================================
 
 packer {
   required_plugins {
     azure = {
-      source   = "github.com/hashicorp/azure"            # Official Azure plugin for Packer
-      version  = "~> 2"                                  # Lock to major version 2 for compatibility
+      # Official HashiCorp Azure plugin for Packer.
+      source  = "github.com/hashicorp/azure"
+      version = "~> 2"
     }
   }
 }
 
-############################################
-# LOCALS: TIMESTAMP UTILITY
-############################################
-
 locals {
-  timestamp = regex_replace(timestamp(), "[- TZ:]", "") # Generate compact timestamp (YYYYMMDDHHMMSS)
-                                                       # Used for unique image names
+  # Compact timestamp used to make managed image names unique.
+  # Example: YYYYMMDDHHMMSS
+  timestamp = regex_replace(timestamp(), "[- TZ:]", "")
 }
 
-############################################
-# REQUIRED VARIABLES: AZURE CREDENTIALS
-############################################
+# ==============================================================================
+# REQUIRED VARIABLES: AZURE AUTHENTICATION AND BUILD PARAMETERS
+# ==============================================================================
+#
+# These variables define the Azure authentication context and build targets.
+# Most workflows use an Azure AD App Registration (Service Principal).
+#
+# Notes:
+# - Supply secrets via environment variables or a CI/CD secret store.
+# - Avoid committing credentials into source control.
+# ==============================================================================
 
-# Azure AD App client ID
 variable "client_id" {
+  # Azure AD application (service principal) client ID.
   description = "Azure Client ID"
   type        = string
 }
 
-# Azure AD App client secret
 variable "client_secret" {
+  # Azure AD application (service principal) client secret.
   description = "Azure Client Secret"
   type        = string
 }
 
-# Azure Subscription ID
 variable "subscription_id" {
+  # Azure subscription where the build VM runs and the image is created.
   description = "Azure Subscription ID"
   type        = string
 }
 
-# Azure Tenant ID (AAD directory ID)
 variable "tenant_id" {
+  # Azure AD tenant (directory) that owns the service principal.
   description = "Azure Tenant ID"
   type        = string
 }
 
-# Password passed into SSH config script (for enabling password auth)
 variable "password" {
+  # Optional password passed to provisioning scripts via environment variable.
+  # Prefer SSH keys; only enable password auth when required by the workflow.
   description = "The password for the packer account"
-  default     = ""                                       # Must be overridden securely via env var or CLI
+  type        = string
+  default     = ""
 }
 
 variable "resource_group" {
+  # Resource group where the final managed image will be stored.
   description = "Resource group where the VM image will be created"
   type        = string
 }
 
-############################################
-# SOURCE BLOCK: AZURE CUSTOM IMAGE CREATION
-############################################
+# ==============================================================================
+# SOURCE BLOCK: AZURE MANAGED IMAGE BUILDER
+# ==============================================================================
+#
+# The azure-arm builder creates a temporary VM from a Marketplace base image,
+# runs provisioners against it, then captures it into an Azure Managed Image.
+#
+# Notes:
+# - The base image here is Ubuntu 24.04 LTS from Canonical.
+# - Choose an appropriately sized VM for build speed vs. cost.
+# - The managed image is written to the resource group provided by var.
+# ==============================================================================
 
 source "azure-arm" "games_image" {
-  client_id       = var.client_id                        # Auth: Azure AD App client ID
-  client_secret   = var.client_secret                    # Auth: Azure AD App secret
-  subscription_id = var.subscription_id                  # Auth: Azure subscription context
-  tenant_id       = var.tenant_id                        # Auth: Azure AD tenant context
+  # Azure authentication (Service Principal / App Registration).
+  client_id       = var.client_id
+  client_secret   = var.client_secret
+  subscription_id = var.subscription_id
+  tenant_id       = var.tenant_id
 
-  # Base image to clone (Ubuntu 24.04 LTS)
-  image_offer     = "ubuntu-24_04-lts"                   # Marketplace offer name
-  image_publisher = "canonical"                          # Publisher: Canonical (Ubuntu)
-  image_sku       = "server"                             # Image SKU: server edition
-  
-  ssh_username    = "ubuntu"                             # Username for the build
+  # Marketplace base image selection (Ubuntu 24.04 LTS).
+  image_offer     = "ubuntu-24_04-lts"
+  image_publisher = "canonical"
+  image_sku       = "server"
 
-  location        = "Central US"                         # Azure region to build in
-  vm_size         = "Standard_B1s"                       # Lightweight VM type for low-cost builds
-  os_type         = "Linux"                              # Operating system type
+  # SSH user for provisioning steps.
+  ssh_username = "ubuntu"
 
-  #os_disk_size_gb             = 64                      # Set OS disk size (in GB)
-  #os_disk_managed_disk_type   = "Premium_LRS"           # Use Premium SSD for faster I/O
+  # Build VM region, size, and OS type.
+  location = "Central US"
+  vm_size  = "Standard_B1s"
+  os_type  = "Linux"
 
-  managed_image_name                 = "games_image_${local.timestamp}"     # Unique image name using timestamp
-  managed_image_resource_group_name = var.resource_group # RG where the custom image will be stored
+  # Optional disk tuning (uncomment if you need larger/faster disks).
+  # os_disk_size_gb           = 64
+  # os_disk_managed_disk_type = "Premium_LRS"
+
+  # Output managed image settings.
+  managed_image_name                 = "games_image_${local.timestamp}"
+  managed_image_resource_group_name  = var.resource_group
 }
 
-############################################
-# BUILD BLOCK: INSTALLATION & FILE COPY LOGIC
-############################################
+# ==============================================================================
+# BUILD BLOCK: PROVISIONING WORKFLOW
+# ==============================================================================
+#
+# This build performs a simple provisioning sequence:
+# 1) Create a temporary working directory on the VM
+# 2) Copy static assets into the VM
+# 3) Run an installation script (packages, services, configuration)
+# 4) Apply SSH configuration changes (optionally enabling password auth)
+#
+# Notes:
+# - Keep scripts idempotent so rebuilds behave predictably.
+# - Prefer passing secrets via environment vars, never hardcoded strings.
+# - Validate scripts locally (shellcheck) before running Packer builds.
+# ==============================================================================
 
 build {
+  # Bind this build to the Azure source defined above.
+  sources = ["source.azure-arm.games_image"]
 
-  sources = ["source.azure-arm.games_image"]             # Link build block to source image definition
-
-  # Step 1: Create temp working directory on image
   provisioner "shell" {
-    inline = ["mkdir -p /tmp/html"]                      # Ensures destination path exists before file copy
+    # Ensure destination path exists before copying files.
+    inline = ["mkdir -p /tmp/html"]
   }
 
-  # Step 2: Copy static site assets (HTML files) from local to the VM
   provisioner "file" {
-    source      = "./html/"                              # Local directory with content
-    destination = "/tmp/html/"                           # Target location on the image's disk
+    # Copy local static assets into the VM for installation/config.
+    source      = "./html/"
+    destination = "/tmp/html/"
   }
 
-  # Step 3: Run installation script to set up packages / web server
   provisioner "shell" {
-    script = "./install.sh"                              # Custom provisioning script to install dependencies
+    # Install packages and configure services required by the image.
+    script = "./install.sh"
   }
 
-  # Step 4: Run SSH configuration script (enables password auth, etc.)
   provisioner "shell" {
-    script = "./config_ssh.sh"                           # Custom script to tweak SSH server behavior
+    # Configure SSH behavior (e.g., password auth) when required.
+    script = "./config_ssh.sh"
+
+    # Pass secrets to scripts via environment vars (not inline values).
     environment_vars = [
-      "PACKER_PASSWORD=${var.password}"                  # Pass password into script securely as env var
+      "PACKER_PASSWORD=${var.password}"
     ]
   }
 }

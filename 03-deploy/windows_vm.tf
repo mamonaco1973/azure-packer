@@ -1,99 +1,71 @@
-############################################
-# NETWORK INTERFACE: VIRTUAL MACHINE NIC
-############################################
-resource "azurerm_network_interface" "desktop_nic" {
-  name                = "desktop-nic"                                  # Logical name assigned to the NIC
-  location            = data.azurerm_resource_group.packer_rg.location # Ensure NIC is deployed in the same region as the resource group
-  resource_group_name = data.azurerm_resource_group.packer_rg.name     # Assign NIC to the same resource group
+# ==============================================================================
+# INPUT VARIABLES: CUSTOM IMAGE REFERENCES
+# ==============================================================================
+#
+# These variables define the names of pre-existing Azure Managed Images used
+# as the source for Linux and Windows virtual machines.
+#
+# The images are typically produced by Packer builds and stored in a shared
+# resource group for reuse across environments.
+#
+# Notes:
+# - Image names must exactly match the managed image names in Azure.
+# - Values are commonly supplied via tfvars files or CLI arguments.
+# ==============================================================================
 
-  ip_configuration {
-    name                          = "internal"                           # Name of the NIC's IP configuration
-    subnet_id                     = data.azurerm_subnet.packer_subnet.id # Attach NIC to a specific subnet (defined elsewhere)
-    private_ip_address_allocation = "Dynamic"                            # Let Azure dynamically assign a private IP
-    public_ip_address_id          = azurerm_public_ip.desktop_pip.id     # Bind a static public IP for external access
-  }
+variable "games_image_name" {
+  # Name of the custom Linux managed image.
+  description = "Name of the custom Azure Linux image"
+  type        = string
 }
 
-############################################
-# PUBLIC IP: ASSIGN TO THE VIRTUAL MACHINE
-############################################
-resource "azurerm_public_ip" "desktop_pip" {
-  name                = "desktop-pip"                                  # Name for the public IP resource
-  location            = data.azurerm_resource_group.packer_rg.location # Same location as other resources
-  resource_group_name = data.azurerm_resource_group.packer_rg.name     # Same resource group for logical grouping
-  allocation_method   = "Static"                                       # Use a static public IP (fixed over time)
-  sku                 = "Standard"                                     # Use Standard SKU (recommended for production scenarios)
-
-  domain_name_label = "desktop-${substr(data.azurerm_client_config.current.subscription_id, 0, 6)}"
-  # Generate a globally unique DNS name based on subscription ID prefix
+variable "desktop_image_name" {
+  # Name of the custom Windows managed image.
+  description = "Name of the custom Azure Windows image"
+  type        = string
 }
 
-############################################
-# RANDOM PASSWORD: SECURE WINDOWS LOGIN
-############################################
-resource "random_password" "windows" {
-  length  = 24    # Length of generated password (strong entropy)
-  special = false # Avoid special characters (useful for services that can't handle them)
+# ==============================================================================
+# INPUT VARIABLES: NETWORK CONTEXT
+# ==============================================================================
+#
+# These variables reference existing network resources used by this module.
+# Defaults are provided to match the standard Packer-based lab layout.
+#
+# Notes:
+# - Override defaults when deploying into shared or nonstandard networks.
+# - The referenced VNet and subnet must already exist.
+# ==============================================================================
+
+variable "vnet_name" {
+  # Name of the existing virtual network.
+  description = "Name of the existing virtual network"
+  type        = string
+  default     = "packer-vnet"
 }
 
-############################################
-# VIRTUAL MACHINE: WINDOWS DEPLOYMENT
-############################################
-resource "azurerm_windows_virtual_machine" "desktop_vm" {
-  name                  = "desktop-vm"                                   # Name of the VM in the Azure portal
-  location              = data.azurerm_resource_group.packer_rg.location # Must match resource group location
-  resource_group_name   = data.azurerm_resource_group.packer_rg.name     # VM belongs to this RG
-  size                  = "Standard_B2s"                                 # Small VM size for basic tasks
-  admin_username        = "azureadmin"                                   # Windows admin login user 
-  admin_password        = random_password.windows.result                 # Secure random password
-  provision_vm_agent    = true                                           # Required for extensions and custom script execution
-
-  network_interface_ids = [
-    azurerm_network_interface.desktop_nic.id                             # Attach previously defined NIC to the VM
-  ]
-
-  os_disk {
-    caching              = "ReadWrite"                                   # Read/write cache for improved performance
-    storage_account_type = "Standard_LRS"                                # Locally redundant storage
-  }
-
-  source_image_id = data.azurerm_image.desktop_image.id                  # Use Packer-built custom Windows image
-
-  ############################################
-  # BOOTSTRAP SCRIPT (OPTIONAL)
-  ############################################
-  custom_data = base64encode(templatefile("${path.module}/scripts/custom_data.ps1", {
-    image = data.azurerm_image.desktop_image.name
-  }))                                                                     # PowerShell-based init script (must be base64-encoded)
+variable "subnet_name" {
+  # Name of the existing subnet.
+  description = "Name of the existing subnet"
+  type        = string
+  default     = "packer-subnet"
 }
 
-############################################
-# VM EXTENSION: EXECUTE CUSTOM_DATA SCRIPT
-############################################
-resource "azurerm_virtual_machine_extension" "desktop_run_custom_data" {
-  name                       = "run-custom-data"                               # Logical name for this VM extension instance
-  virtual_machine_id         = azurerm_windows_virtual_machine.desktop_vm.id   # Target the Windows VM we just provisioned
-  publisher                  = "Microsoft.Compute"                             # Microsoft-published extension provider for script execution
-  type                       = "CustomScriptExtension"                         # Use the extension type designed for running startup scripts
-  type_handler_version       = "1.10"                                          # Stable handler version that supports PowerShell and file operations
-  auto_upgrade_minor_version = true                                            # Allow minor version upgrades for compatibility and security
+# ==============================================================================
+# INPUT VARIABLE: RESOURCE GROUP CONTEXT
+# ==============================================================================
+#
+# This variable identifies the resource group that owns the custom images and
+# network resources consumed by this module.
+#
+# Notes:
+# - The resource group must exist prior to running Terraform.
+# - Keeping this configurable improves portability across environments.
+# ==============================================================================
 
-   settings = jsonencode({
-    commandToExecute = join(" ", [
-      "powershell",
-      "-ExecutionPolicy Bypass",
-      "-Command \"",
-      "if (Test-Path 'C:\\AzureData\\CustomData.bin') {",
-        "Copy-Item 'C:\\AzureData\\CustomData.bin' 'C:\\AzureData\\custom_data.ps1' -Force;",
-        "powershell -ExecutionPolicy Bypass -File 'C:\\AzureData\\custom_data.ps1'",
-      "} else {",
-        "Write-Host 'CustomData.bin not found.'",
-      "}\""
-    ])
-  })
-}
-
-output "desktop_vm_fqdn" {
-  description = "FQDN of the public IP assigned to the games VM"
-  value       = azurerm_public_ip.desktop_pip.fqdn
+variable "resource_group_name" {
+  # Name of the existing resource group.
+  description = "Name of the existing resource group used for image and network"
+  type        = string
+  default     = "packer-rg"
 }
