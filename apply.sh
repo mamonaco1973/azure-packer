@@ -66,27 +66,27 @@ password=$(echo "$secretsJson" | jq -r '.password')
 # ---- STEP 4A: Build custom Linux image ---------------------------------------
 cd 02-packer/linux
 packer init .
-packer build \
-  -var="client_id=$ARM_CLIENT_ID" \
-  -var="client_secret=$ARM_CLIENT_SECRET" \
-  -var="subscription_id=$ARM_SUBSCRIPTION_ID" \
-  -var="tenant_id=$ARM_TENANT_ID" \
-  -var="password=$password" \
-  -var="resource_group=packer-rg" \
-  linux_image.pkr.hcl
+#packer build \
+#  -var="client_id=$ARM_CLIENT_ID" \
+#  -var="client_secret=$ARM_CLIENT_SECRET" \
+#  -var="subscription_id=$ARM_SUBSCRIPTION_ID" \
+#  -var="tenant_id=$ARM_TENANT_ID" \
+#  -var="password=$password" \
+#  -var="resource_group=packer-rg" \
+#  linux_image.pkr.hcl
 cd ..
 
 # ---- STEP 4B: Build custom Windows image -------------------------------------
 cd windows
 packer init .
-packer build \
-  -var="client_id=$ARM_CLIENT_ID" \
-  -var="client_secret=$ARM_CLIENT_SECRET" \
-  -var="subscription_id=$ARM_SUBSCRIPTION_ID" \
-  -var="tenant_id=$ARM_TENANT_ID" \
-  -var="password=$password" \
-  -var="resource_group=packer-rg" \
-  windows_image.pkr.hcl
+#packer build \
+#  -var="client_id=$ARM_CLIENT_ID" \
+#  -var="client_secret=$ARM_CLIENT_SECRET" \
+#  -var="subscription_id=$ARM_SUBSCRIPTION_ID" \
+#  -var="tenant_id=$ARM_TENANT_ID" \
+#  -var="password=$password" \
+#  -var="resource_group=packer-rg" \
+#  windows_image.pkr.hcl
 cd ../..
 
 # ==============================================================================
