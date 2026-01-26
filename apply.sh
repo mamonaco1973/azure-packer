@@ -10,6 +10,15 @@
 # required tools (az, terraform, packer, jq) are installed and available.
 # ==============================================================================
 
+# ------------------------------------------------------------------------------
+# Strict shell behavior
+# ------------------------------------------------------------------------------
+# -e         Exit immediately if any command fails
+# -u         Treat unset variables as errors
+# -o pipefail  Fail if any command in a pipeline fails
+# ------------------------------------------------------------------------------
+set -euo pipefail
+
 # ==============================================================================
 # STEP 1: VALIDATE ENVIRONMENT AND PREREQUISITES
 # ==============================================================================

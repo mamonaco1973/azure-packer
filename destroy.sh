@@ -17,6 +17,15 @@
 # - Ensure ARM_* environment variables are set before running this script.
 # ==============================================================================
 
+# ------------------------------------------------------------------------------
+# Strict shell behavior
+# ------------------------------------------------------------------------------
+# -e         Exit immediately if any command fails
+# -u         Treat unset variables as errors
+# -o pipefail  Fail if any command in a pipeline fails
+# ------------------------------------------------------------------------------
+set -euo pipefail
+
 # ==============================================================================
 # STEP 1: AUTHENTICATE TO AZURE (SERVICE PRINCIPAL)
 # ==============================================================================
