@@ -9,7 +9,7 @@
 # - Resolves the latest custom managed images for Linux and Windows
 # - Destroys the VM deployment layer that references those images
 # - Deletes all managed images from the packer resource group
-# - Destroys the base infrastructure layer (networking, bastion, key vault, etc.)
+# - Destroys the base infrastructure layer (networking and the packer password)
 #
 # Notes:
 # - This script is destructive and cannot be undone.
@@ -116,8 +116,8 @@ done
 # STEP 5: DESTROY BASE INFRASTRUCTURE LAYER (01-INFRASTRUCTURE)
 # ==============================================================================
 #
-# Destroy foundational resources such as networking, subnets, NSGs, Bastion,
-# Key Vault, and any supporting components created in the infrastructure layer.
+# Destroy foundational resources such as networking, subnets, NSGs and the
+# packer password created in the infrastructure layer.
 # ==============================================================================
 
 cd 01-infrastructure

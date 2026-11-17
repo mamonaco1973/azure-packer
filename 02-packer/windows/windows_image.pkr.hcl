@@ -3,7 +3,7 @@
 # ==============================================================================
 #
 # This template builds a reusable Azure Managed Image based on Windows Server
-# 2022 Datacenter. The build uses WinRM for provisioning and applies updates,
+# 2025 Datacenter. The build uses WinRM for provisioning and applies updates,
 # security hardening, and desktop tooling configuration before sysprepping.
 #
 # The template is composed of:
@@ -100,7 +100,7 @@ variable "password" {
 # image, runs provisioners over WinRM, then captures a generalized managed image.
 #
 # Notes:
-# - Windows Server 2022 Datacenter is used as the base Marketplace image.
+# - Windows Server 2025 Datacenter is used as the base Marketplace image.
 # - VM size impacts build speed and cost; choose based on workload needs.
 # - WinRM is configured with SSL; certificate validation is disabled here.
 # ==============================================================================
@@ -112,11 +112,11 @@ source "azure-arm" "desktop_image" {
   tenant_id       = var.tenant_id
   subscription_id = var.subscription_id
 
-  # Marketplace base image selection (Windows Server 2022 Datacenter).
+  # Marketplace base image selection (Windows Server 2025 Datacenter).
   os_type         = "Windows"
   image_publisher = "MicrosoftWindowsServer"
   image_offer     = "WindowsServer"
-  image_sku       = "2022-Datacenter"
+  image_sku       = "2025-datacenter"
 
   # Build VM region and size.
   location = "Central US"

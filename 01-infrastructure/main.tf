@@ -20,26 +20,6 @@ provider "azurerm" {
 }
 
 # ==============================================================================
-# DATA SOURCES: AZURE CONTEXT AND IDENTITY
-# ==============================================================================
-#
-# These data sources expose the current Azure subscription and authenticated
-# client identity. They are commonly used for tagging, auditing, and RBAC.
-#
-# Notes:
-# - client_config provides tenant_id and object_id for role assignments.
-# - subscription provides subscription metadata for environment awareness.
-# ==============================================================================
-
-data "azurerm_subscription" "primary" {
-  # Active subscription context (ID, display name, tenant linkage).
-}
-
-data "azurerm_client_config" "current" {
-  # Authenticated client context (tenant_id, object_id, subscription_id).
-}
-
-# ==============================================================================
 # RESOURCE GROUP: PRIMARY CONTAINER FOR PROJECT RESOURCES
 # ==============================================================================
 #

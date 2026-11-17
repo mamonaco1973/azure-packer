@@ -6,9 +6,9 @@ from inline SVG, so a `prefers-color-scheme` media query inside the document is
 silently dropped. The README pairs them with <picture>, which GitHub honours.
 
 A README diagram is studied, not narrated, so it is COMPLETE rather than
-minimal: both marketplace images, both Packer builds, the vault secret that
-sets the packer password in both, the two VMs launched from the new images,
-and the Bastion host in front of them are all on it.
+minimal: both marketplace images, both Packer builds, the generated password
+that sets the packer account in both, and the two VMs launched from the new
+images are all on it.
 Run:  python3 make_diagram.py
 """
 
@@ -23,7 +23,7 @@ NW, NH = 420, 110                          # node width, height
 GUTTER = 140                               # between columns: room for a label
 MARGIN = 40
 COL = [MARGIN + i * (NW + GUTTER) for i in range(3)]
-ROW = [40 + i * 200 for i in range(4)]
+ROW = [40 + i * 200 for i in range(3)]
 W = MARGIN * 2 + NW * 3 + GUTTER * 2
 H = ROW[-1] + NH + 40 + 0
 TITLE_PX, SUB_PX, EDGE_PX = 26, 17, 16
@@ -103,18 +103,18 @@ def gutter_y(r):
 # Layout
 # ------------------------------------------------------------------------------
 # Two parallel pipelines, Linux on the left and Windows on the right:
-# marketplace image, Packer-built managed image, VM. The vault sits between
-# them at the top because both builds read it; the client sits between the
-# VMs, with Azure Bastion below as the second way in.
+# marketplace image, Packer-built managed image, VM. The password sits
+# between them at the top because both builds read it; the client sits
+# between the VMs.
 #
 # id: (x, y, colour key, icon, title, subtitle[, "dashed"])
 NODES.update({
     "ubuntu":   (COL[0], ROW[0], "navy", "layers", "Ubuntu 24.04",
                  "Canonical marketplace image"),
-    "secret":   (COL[1], ROW[0], "store", "key", "Key Vault",
-                 "packer-kv-*, packer-credentials"),
-    "winbase":  (COL[2], ROW[0], "navy", "layers", "Windows Server 2022",
-                 "2022-Datacenter marketplace image"),
+    "secret":   (COL[1], ROW[0], "store", "key", "packer password",
+                 "random_password, Terraform state"),
+    "winbase":  (COL[2], ROW[0], "navy", "layers", "Windows Server 2025",
+                 "2025-datacenter marketplace image"),
     "games":    (COL[0], ROW[1], "blue", "layers", "games_image",
                  "Packer: Apache + 12 HTML games"),
     "desktop":  (COL[2], ROW[1], "blue", "layers", "desktop_image",
@@ -125,13 +125,11 @@ NODES.update({
                  "from the internet"),
     "dsrv":     (COL[2], ROW[2], "amber", "monitor", "desktop-vm",
                  "Standard_B2s, packer-subnet"),
-    "bastion":  (COL[1], ROW[3], "navy", "route", "Azure Bastion",
-                 "bastion-host, AzureBastionSubnet"),
 })
 
 ub, sec, wb = _r("ubuntu"), _r("secret"), _r("winbase")
 ga, da = _r("games"), _r("desktop")
-gs, cli, ds, bas = _r("gsrv"), _r("client"), _r("dsrv"), _r("bastion")
+gs, cli, ds = _r("gsrv"), _r("client"), _r("dsrv")
 FAN = 60
 
 # id: (path, colour key, label, label_x, label_y, anchor[, "dashed"])
@@ -154,22 +152,15 @@ EDGES = {
                  "HTTP :80", gutter_x(0), cli[5] - 12, "middle"),
     "e_rdp":    (f"M{cli[2]},{cli[5]} H{ds[0] - 5}", "line",
                  "RDP :3389", gutter_x(1), cli[5] - 12, "middle"),
-    "e_bas":    (f"M{cli[4]},{cli[3]} V{bas[1] - 5}", "line",
-                 "HTTPS :443", cli[4] + 14, gutter_y(2) + 6, "start"),
-    "e_bg":     (f"M{bas[0]},{bas[5]} H{gs[4]} V{gs[3] + 5}", "navy",
-                 "SSH", gutter_x(0), bas[5] - 12, "middle"),
-    "e_bd":     (f"M{bas[2]},{bas[5]} H{ds[4]} V{ds[3] + 5}", "navy",
-                 "RDP", gutter_x(1), bas[5] - 12, "middle"),
 }
 
 ALT = ("Packer builds two managed images in packer-rg, each in a temporary build "
        "resource group: a games image from Canonical's Ubuntu 24.04 image, with "
        "Apache serving twelve HTML games, and a desktop image from Windows Server "
-       "2022 Datacenter, with Windows updates, Chrome and Firefox, sysprepped. Both "
-       "builds read the packer account password from Key Vault. Terraform then "
-       "launches a VM from each image. A browser reaches the games VM over HTTP and "
-       "an RDP client reaches the desktop VM; Azure Bastion offers SSH and RDP to "
-       "both from the portal.")
+       "2025 Datacenter, with Windows updates, Chrome and Firefox, sysprepped. Both "
+       "builds set the packer account password, which Terraform generates and keeps "
+       "in its state. Terraform then launches a VM from each image. A browser "
+       "reaches the games VM over HTTP and an RDP client reaches the desktop VM.")
 
 # ------------------------------------------------------------------------------
 # Rendering

@@ -29,30 +29,22 @@ if [ $? -ne 0 ]; then
 fi
 
 # ==============================================================================
-# STEP 2: PROVISION BASE INFRASTRUCTURE (VNET, SUBNETS, BASTION, KEY VAULT)
+# STEP 2: PROVISION BASE INFRASTRUCTURE (VNET, SUBNET, NSG, PACKER PASSWORD)
 # ==============================================================================
 cd 01-infrastructure
 terraform init
 terraform apply -auto-approve
+
+# ==============================================================================
+# STEP 3: READ THE PACKER PASSWORD FROM TERRAFORM STATE
+# ==============================================================================
+password=$(terraform output -raw packer_password)
 cd ..
 
-# ==============================================================================
-# STEP 3: RETRIEVE PACKER CREDENTIALS FROM AZURE KEY VAULT
-# ==============================================================================
-vault=$(az keyvault list \
-  --resource-group packer-rg \
-  --query "[?starts_with(name, 'packer-kv')].name | [0]" \
-  --output tsv)
-
-echo "NOTE: Key vault for secrets is $vault"
-
-secretsJson=$(az keyvault secret show \
-  --name packer-credentials \
-  --vault-name ${vault} \
-  --query value \
-  -o tsv)
-
-password=$(echo "$secretsJson" | jq -r '.password')
+if [ -z "$password" ]; then
+  echo "ERROR: Failed to read the packer password from Terraform state."
+  exit 1
+fi
 
 # ==============================================================================
 # STEP 4: BUILD CUSTOM IMAGES WITH PACKER
